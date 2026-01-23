@@ -30,8 +30,8 @@ type GeoInfo struct {
 	CountryCode string     `json:"CountryCode"`
 	Display     string     `json:"Display"`
 	LocationID  string     `json:"LocationID"`
-	Lat         string     `json:"Lat"`
-	Lng         string     `json:"Lng"`
+	Lat         float64     `json:"Lat"`
+	Lng         float64     `json:"Lng"`
 	Slug        string     `json:"Slug"`
 }
 
@@ -49,11 +49,9 @@ type Property struct {
 	Counts                 Counts            `json:"Counts"`
 	FeatureImage           string            `json:"FeatureImage"`
 	IsPetFriendly          bool              `json:"IsPetFriendly"`
-	MinStay                int               `json:"MinStay"`
 	PropertyName           string            `json:"PropertyName"`
 	PropertySlug           string            `json:"PropertySlug"`
 	PropertyType           string            `json:"PropertyType"`
-	PropertyTypeCategoryID string            `json:"PropertyTypeCategoryId"`
 	RoomSize               float64           `json:"RoomSize"`
 }
 
@@ -91,19 +89,14 @@ type PropertyDetailsResponse struct {
 	FeedProviderID          string                 `json:"feed_provider_id"`
 	FeedProviderURL         string                 `json:"feed_provider_url"`
 	ID                      string                 `json:"id"`
-	IsDeleted               bool                   `json:"is_deleted"`
-	IsExpired               bool                   `json:"is_expired"`
 	LocationID              string                 `json:"location_id"`
 	LonLat                  LonLat                 `json:"lonlat"`
-	MinStay                 int                    `json:"min_stay"`
 	Occupancy               int                    `json:"occupancy"`
-	OwnerID                 *string                `json:"owner_id"`
+	OwnerID                 string                 `json:"owner_id"`
 	PropertyFlags           PropertyFlags          `json:"property_flags"`
 	PropertyName            string                 `json:"property_name"`
 	PropertySlug            string                 `json:"property_slug"`
 	PropertyType            string                 `json:"property_type"`
-	PropertyTypeCategories  []string               `json:"property_type_categories"`
-	PropertyTypeCategory    string                 `json:"property_type_category"`
 	Published               bool                   `json:"published"`
 	RoomSizeSqft            float64                `json:"room_size_sqft"`
 }
