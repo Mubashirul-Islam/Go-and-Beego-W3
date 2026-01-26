@@ -4,14 +4,20 @@ import (
 	"property_listing_api/models"
 	"property_listing_api/services"
 	"sync"
-	
-	beego "github.com/beego/beego/v2/server/web"
+
 	"github.com/beego/beego/v2/core/logs"
+	beego "github.com/beego/beego/v2/server/web"
 )
 
 // PropertyController handles property-related requests
 type PropertyController struct {
 	beego.Controller
+}
+
+// job represents a property fetching task
+type job struct {
+	index      int
+	propertyID string
 }
 
 // GetProperties handles GET /v1/properties/:location
@@ -56,7 +62,7 @@ func (c *PropertyController) GetProperties() {
 		return
 	}
 	
-	// Fetch property details for each ID
+	// Fetch property details for each ID using worker pool
 	propertyItems := make([]models.PropertyItem, 0, len(propertyIDs))
 	
 	// Get max concurrent requests from config
@@ -65,49 +71,49 @@ func (c *PropertyController) GetProperties() {
 		maxConcurrent = 10
 	}
 	
-	// Use goroutines with semaphore for concurrent requests
-	var wg sync.WaitGroup
-	semaphore := make(chan struct{}, maxConcurrent)
-	resultsChan := make(chan *models.PropertyItem, len(propertyIDs))
-	errorsChan := make(chan error, len(propertyIDs))
-	
-	// Maintain order by using indices
+	// Create job channel and results storage
+	jobs := make(chan job, len(propertyIDs))
 	results := make([]*models.PropertyItem, len(propertyIDs))
 	errors := make([]error, len(propertyIDs))
 	
-	for i, propertyID := range propertyIDs {
+	// Start worker pool
+	var wg sync.WaitGroup
+	for w := 0; w < maxConcurrent; w++ {
 		wg.Add(1)
-		go func(index int, id string) {
+		go func() {
 			defer wg.Done()
 			
-			// Acquire semaphore
-			semaphore <- struct{}{}
-			defer func() { <-semaphore }()
-			
-			// Fetch property details
-			details, err := apiService.GetPropertyDetails(id)
-			if err != nil {
-				logs.Error("Failed to fetch property %s: %v", id, err)
-				errors[index] = err
-				return
+			// Process jobs from channel
+			for j := range jobs {
+				// Fetch property details
+				details, err := apiService.GetPropertyDetails(j.propertyID)
+				if err != nil {
+					logs.Error("Failed to fetch property %s: %v", j.propertyID, err)
+					errors[j.index] = err
+					continue
+				}
+				
+				// Transform to internal format
+				item, err := services.TransformPropertyDetails(details)
+				if err != nil {
+					logs.Error("Failed to transform property %s: %v", j.propertyID, err)
+					errors[j.index] = err
+					continue
+				}
+				
+				results[j.index] = item
 			}
-			
-			// Transform to internal format
-			item, err := services.TransformPropertyDetails(details)
-			if err != nil {
-				logs.Error("Failed to transform property %s: %v", id, err)
-				errors[index] = err
-				return
-			}
-			
-			results[index] = item
-		}(i, propertyID)
+		}()
 	}
 	
-	// Wait for all goroutines to complete
+	// Send jobs to workers
+	for i, propertyID := range propertyIDs {
+		jobs <- job{index: i, propertyID: propertyID}
+	}
+	close(jobs)
+	
+	// Wait for all workers to complete
 	wg.Wait()
-	close(resultsChan)
-	close(errorsChan)
 	
 	// Collect results in order, skipping failed ones
 	for i, result := range results {
