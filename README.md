@@ -37,7 +37,7 @@ A production-ready REST API built with **Beego** (Go) that aggregates property l
 
 ---
 
-## 🔧 Prerequisites
+## Prerequisites
 
 - **Go**: Version 1.21 or higher
 - **Network Access**: To external property and location services API
@@ -45,7 +45,7 @@ A production-ready REST API built with **Beego** (Go) that aggregates property l
 
 ---
 
-## 🚀 Installation
+## Installation
 
 ### 1. Clone the Repository
 
